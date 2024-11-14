@@ -1,6 +1,6 @@
 import React from 'react';
 import { Project, User } from '../types';
-import { Plus, Trash2, Users, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Users, AlertCircle, Folder } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -111,25 +111,28 @@ export function ProjectList({
             {projects.map(project => (
               <div key={project.id} className="relative">
                 <div
-                  className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                  className={`group flex items-center justify-between p-4 rounded-xl cursor-pointer transition-all hover:shadow-lg ${
                     selectedProject?.id === project.id
-                      ? 'bg-primary/5 border-primary/20 shadow-sm'
-                      : 'hover:bg-accent border-transparent'
-                  } border`}
+                      ? 'bg-primary/[0.08] border-primary/25 shadow-md shadow-primary/5'
+                      : 'hover:bg-accent/50 border-transparent'
+                  } border backdrop-blur-sm`}
                   onClick={() => onSelectProject(project)}
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Folder className="h-5 w-5" />
+                    </div>
                     <div className="flex flex-col">
                       <span className="font-medium truncate">{project.name}</span>
                       <span className="text-xs text-muted-foreground">
                         Owner: {users.find(u => u.id === project.userId)?.name}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full text-xs">
+                    <div className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 rounded-full text-xs font-medium">
                       {project.percentage}%
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -137,7 +140,7 @@ export function ProjectList({
                       }}
                       size="icon"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -148,7 +151,7 @@ export function ProjectList({
                       }}
                       size="icon"
                       variant="ghost"
-                      className="relative"
+                      className="relative h-8 w-8"
                     >
                       <Users className="h-4 w-4" />
                       <span className="absolute -top-1 -right-1 bg-primary text-[10px] text-primary-foreground w-4 h-4 rounded-full flex items-center justify-center">

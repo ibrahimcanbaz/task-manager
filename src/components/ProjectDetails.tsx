@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Project, User } from '../types';
-import { MessageSquarePlus, Trash2, AlertCircle } from 'lucide-react';
+import { MessageSquarePlus, Trash2, AlertCircle, Folder, User as UserIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -132,19 +132,25 @@ export function ProjectDetails({ project, users, onAddComment, onDeleteComment }
             {project.comments.map(comment => {
               const user = users.find(u => u.id === comment.userId);
               return (
-                <Card key={comment.id} className="bg-accent/50 hover:bg-accent/70 transition-colors group">
-                  <CardContent className="p-4">
+                <Card key={comment.id} className="bg-card hover:bg-accent/30 transition-colors group relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardContent className="p-4 relative">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
-                        <span className="font-medium text-primary">
-                          {user?.name}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(comment.date).toLocaleString()}
-                        </span>
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <UserIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-primary">
+                            {user?.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(comment.date).toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium px-2 py-0.5 bg-primary/10 rounded-full">
+                        <span className="text-sm font-medium px-2.5 py-1 bg-primary/10 rounded-full">
                           {comment.percentage}%
                         </span>
                         <Button
@@ -157,7 +163,7 @@ export function ProjectDetails({ project, users, onAddComment, onDeleteComment }
                         </Button>
                       </div>
                     </div>
-                    <p className="text-foreground">{comment.text}</p>
+                    <p className="text-foreground mt-2">{comment.text}</p>
                   </CardContent>
                 </Card>
               );
