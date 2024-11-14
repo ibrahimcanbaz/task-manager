@@ -22,19 +22,20 @@ interface ProjectDetailsProps {
 
 export function ProjectDetails({ project, users, onAddComment, onDeleteComment }: ProjectDetailsProps) {
   const [newComment, setNewComment] = React.useState('');
-  const [newPercentage, setNewPercentage] = React.useState('');
+  const [newPercentage, setNewPercentage] = React.useState(project.percentage.toString());
   const [selectedUserId, setSelectedUserId] = React.useState<string>('');
   const [deleteCommentId, setDeleteCommentId] = React.useState<number | null>(null);
 
   // Get assigned users
   const assignedUsers = users.filter(user => project.assignedUsers.includes(user.id));
 
-  // Set initial selected user when project changes or when assigned users change
+  // Update percentage and selected user when project changes
   useEffect(() => {
+    setNewPercentage(project.percentage.toString());
     if (assignedUsers.length > 0) {
       setSelectedUserId(assignedUsers[0].id.toString());
     }
-  }, [project.id, project.assignedUsers]);
+  }, [project.id, project.percentage, project.assignedUsers]);
 
   const handleAddComment = () => {
     if (newComment.trim() && selectedUserId) {
@@ -45,7 +46,7 @@ export function ProjectDetails({ project, users, onAddComment, onDeleteComment }
         parseInt(selectedUserId)
       );
       setNewComment('');
-      setNewPercentage('');
+      setNewPercentage(project.percentage.toString()); // Reset to current project percentage
     }
   };
 
