@@ -5,15 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { DeleteDialog } from './DeleteDialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 interface ProjectListProps {
   projects: Project[];
   users: User[];
   selectedProject: Project | null;
-  onAddProject: (name: string) => void;
+  onAddProject: (name: string, ownerId: number) => void;
   onSelectProject: (project: Project) => void;
   onDeleteProject: (id: number) => void;
   onAssignUser: (projectId: number, userId: number) => void;
+  currentUserId: number | null;
 }
 
 export function ProjectList({
@@ -24,14 +32,22 @@ export function ProjectList({
   onSelectProject,
   onDeleteProject,
   onAssignUser,
+  currentUserId,
 }: ProjectListProps) {
   const [newProject, setNewProject] = React.useState('');
+  const [newProjectOwner, setNewProjectOwner] = React.useState<string>('');
   const [showAssignUsers, setShowAssignUsers] = React.useState<number | null>(null);
   const [deleteProjectId, setDeleteProjectId] = React.useState<number | null>(null);
 
+  React.useEffect(() => {
+    if (currentUserId && !newProjectOwner) {
+      setNewProjectOwner(currentUserId.toString());
+    }
+  }, [currentUserId]);
+
   const handleAddProject = () => {
-    if (newProject.trim() && users.length > 0) {
-      onAddProject(newProject.trim());
+    if (newProject.trim() && newProjectOwner && users.length > 0) {
+      onAddProject(newProject.trim(), parseInt(newProjectOwner));
       setNewProject('');
     }
   };
@@ -45,24 +61,38 @@ export function ProjectList({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Input
-              placeholder="Create new project..."
-              value={newProject}
-              onChange={(e) => setNewProject(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleAddProject()}
-              className="pr-24"
-              disabled={users.length === 0}
-            />
-            <Button 
-              onClick={handleAddProject}
-              className="absolute right-1 top-1 bottom-1"
-              size="sm"
-              disabled={users.length === 0}
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="space-y-3">
+            <Select 
+              value={newProjectOwner} 
+              onValueChange={setNewProjectOwner}
             >
-              Add Project
-            </Button>
+              <SelectTrigger>
+                <SelectValue placeholder="Select project owner" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map(user => (
+                  <SelectItem key={user.id} value={user.id.toString()}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Create new project..."
+                value={newProject}
+                onChange={(e) => setNewProject(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddProject()}
+                disabled={users.length === 0 || !newProjectOwner}
+              />
+              <Button 
+                onClick={handleAddProject}
+                disabled={users.length === 0 || !newProjectOwner || !newProject.trim()}
+              >
+                Add
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -89,12 +119,28 @@ export function ProjectList({
                   onClick={() => onSelectProject(project)}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="font-medium truncate">{project.name}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium truncate">{project.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Owner: {users.find(u => u.id === project.userId)?.name}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full text-xs">
                       {project.percentage}%
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteProjectId(project.id);
+                      }}
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -108,17 +154,6 @@ export function ProjectList({
                       <span className="absolute -top-1 -right-1 bg-primary text-[10px] text-primary-foreground w-4 h-4 rounded-full flex items-center justify-center">
                         {project.assignedUsers.length}
                       </span>
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteProjectId(project.id);
-                      }}
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

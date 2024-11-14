@@ -18,4 +18,5 @@ export interface Project {
   comments: Comment[];
   percentage: number;
   assignedUsers: number[];
+  userId: number;
 }

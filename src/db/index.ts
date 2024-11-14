@@ -99,73 +99,61 @@ export const dbService = {
 
   getProjects: async (userId?: number): Promise<Project[]> => {
     await initDb();
-    let query = `
-      SELECT DISTINCT p.*
+    const projects = db.exec(`
+      SELECT 
+        p.id, 
+        p.name, 
+        p.percentage,
+        p.user_id,
+        GROUP_CONCAT(DISTINCT pu.user_id) as assigned_users,
+        GROUP_CONCAT(c.id || ',' || c.text || ',' || c.percentage || ',' || c.user_id || ',' || c.created_at) as comments
       FROM projects p
-    `;
-    const params = [];
+      LEFT JOIN project_users pu ON p.id = pu.project_id
+      LEFT JOIN comments c ON p.id = c.project_id
+      ${userId ? 'WHERE pu.user_id = ?' : ''}
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+    `, userId ? [userId] : []);
 
-    if (userId) {
-      query += `
-        INNER JOIN project_users pu ON p.id = pu.project_id
-        WHERE pu.user_id = ?
-      `;
-      params.push(userId);
-    }
-
-    query += ' ORDER BY p.created_at DESC';
-    const projects = db.exec(query, params);
-
-    const projectList = projects[0]?.values.map((row: any) => ({
+    return projects[0]?.values.map((row: any) => ({
       id: row[0],
       name: row[1],
       percentage: row[2],
-      assignedUsers: [],
-      comments: [],
+      userId: row[3],
+      assignedUsers: row[4] ? row[4].split(',').map(Number) : [],
+      comments: row[5]
+        ? row[5].split(',').reduce((acc: Comment[], cur: string, i: number, arr: string[]) => {
+            if (i % 5 === 0) {
+              acc.push({
+                id: Number(cur),
+                text: arr[i + 1],
+                percentage: Number(arr[i + 2]),
+                userId: Number(arr[i + 3]),
+                date: new Date(arr[i + 4]),
+              });
+            }
+            return acc;
+          }, [])
+        : [],
     })) || [];
-
-    // Get assigned users and comments for each project
-    for (const project of projectList) {
-      const users = db.exec('SELECT user_id FROM project_users WHERE project_id = ?', [project.id]);
-      project.assignedUsers = users[0]?.values.map((row: any) => row[0]) || [];
-
-      const comments = db.exec(`
-        SELECT c.id, c.text, c.created_at, c.percentage, c.user_id
-        FROM comments c
-        WHERE c.project_id = ?
-        ORDER BY c.created_at DESC
-      `, [project.id]);
-      
-      project.comments = comments[0]?.values.map((row: any) => ({
-        id: row[0],
-        text: row[1],
-        date: new Date(row[2]),
-        percentage: row[3],
-        userId: row[4],
-      })) || [];
-    }
-
-    return projectList;
   },
 
-  addProject: async (name: string): Promise<Project> => {
+  addProject: async (name: string, userId: number): Promise<Project> => {
     await initDb();
-    db.run('INSERT INTO projects (name) VALUES (?)', [name]);
+    db.run('INSERT INTO projects (name, user_id) VALUES (?, ?)', [name, userId]);
     const result = db.exec('SELECT last_insert_rowid()');
     const id = result[0].values[0][0];
 
-    // Assign the first user by default
-    const users = await dbService.getUsers();
-    if (users.length > 0) {
-      await dbService.assignUser(id, users[0].id);
-    }
+    // Assign the owner as the first assigned user
+    await dbService.assignUser(id, userId);
 
     return {
       id,
       name,
       percentage: 0,
       comments: [],
-      assignedUsers: users.length > 0 ? [users[0].id] : [],
+      assignedUsers: [userId],
+      userId,
     };
   },
 

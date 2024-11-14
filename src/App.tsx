@@ -12,6 +12,7 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   // Load projects based on selected user
   const loadProjects = async (userId?: number) => {
@@ -32,9 +33,11 @@ export default function App() {
       await dbService.init();
       const initialUsers = await dbService.getUsers();
       setUsers(initialUsers);
+      if (initialUsers.length > 0) {
+        setCurrentUserId(initialUsers[0].id);
+      }
       const initialProjects = await loadProjects();
-      // Select the first project if available
-      if (initialProjects && initialProjects.length > 0) {
+      if (initialProjects.length > 0) {
         setSelectedProject(initialProjects[0]);
       }
     };
@@ -43,7 +46,7 @@ export default function App() {
 
   // Reload projects when selected user changes
   useEffect(() => {
-    loadProjects(selectedUserId || undefined);
+    loadProjects(selectedUserId === null ? undefined : selectedUserId);
   }, [selectedUserId]);
 
   const addUser = async (name: string) => {
@@ -57,22 +60,22 @@ export default function App() {
     if (selectedUserId === id) {
       setSelectedUserId(null);
     }
-    await loadProjects(selectedUserId);
+    await loadProjects(selectedUserId === null ? undefined : selectedUserId);
   };
 
-  const addProject = async (name: string) => {
-    await dbService.addProject(name);
-    await loadProjects(selectedUserId);
+  const addProject = async (name: string, userId: number) => {
+    await dbService.addProject(name, userId);
+    await loadProjects(selectedUserId === null ? undefined : selectedUserId);
   };
 
   const addComment = async (projectId: number, text: string, percentage: number, userId: number) => {
     await dbService.addComment(projectId, userId, text, percentage);
-    await loadProjects(selectedUserId);
+    await loadProjects(selectedUserId === null ? undefined : selectedUserId);
   };
 
   const deleteComment = async (commentId: number) => {
     await dbService.deleteComment(commentId);
-    await loadProjects(selectedUserId);
+    await loadProjects(selectedUserId === null ? undefined : selectedUserId);
   };
 
   const deleteProject = async (projectId: number) => {
@@ -80,12 +83,12 @@ export default function App() {
     if (selectedProject?.id === projectId) {
       setSelectedProject(null);
     }
-    await loadProjects(selectedUserId);
+    await loadProjects(selectedUserId === null ? undefined : selectedUserId);
   };
 
   const assignUser = async (projectId: number, userId: number) => {
     await dbService.assignUser(projectId, userId);
-    await loadProjects(selectedUserId);
+    await loadProjects(selectedUserId === null ? undefined : selectedUserId);
   };
 
   return (
@@ -108,6 +111,7 @@ export default function App() {
               onSelectProject={setSelectedProject}
               onDeleteProject={deleteProject}
               onAssignUser={assignUser}
+              currentUserId={currentUserId}
             />
             <UserManagement
               users={users}
@@ -123,6 +127,7 @@ export default function App() {
                 users={users}
                 onAddComment={addComment}
                 onDeleteComment={deleteComment}
+                currentUserId={currentUserId}
               />
             ) : (
               <div className="bg-muted/10 rounded-lg shadow-sm p-6 text-center text-muted-foreground">
