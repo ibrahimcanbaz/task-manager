@@ -46,7 +46,7 @@ export default function App() {
 
   // Reload projects when selected user changes
   useEffect(() => {
-    loadProjects(selectedUserId === null ? undefined : selectedUserId);
+    loadProjects(selectedUserId || undefined);
   }, [selectedUserId]);
 
   const addUser = async (name: string) => {

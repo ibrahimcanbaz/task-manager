@@ -99,22 +99,36 @@ export const dbService = {
 
   getProjects: async (userId?: number): Promise<Project[]> => {
     await initDb();
-    const projects = db.exec(`
+    let query = `
       SELECT 
         p.id, 
         p.name, 
         p.percentage,
         p.user_id,
         GROUP_CONCAT(DISTINCT pu.user_id) as assigned_users,
-        GROUP_CONCAT(c.id || ',' || c.text || ',' || c.percentage || ',' || c.user_id || ',' || c.created_at) as comments
+        GROUP_CONCAT(
+          c.id || '---SEPARATOR---' || 
+          c.text || '---SEPARATOR---' || 
+          c.percentage || '---SEPARATOR---' || 
+          c.user_id || '---SEPARATOR---' || 
+          c.created_at,
+          '---RECORD---'
+        ) as comments
       FROM projects p
       LEFT JOIN project_users pu ON p.id = pu.project_id
       LEFT JOIN comments c ON p.id = c.project_id
-      ${userId ? 'WHERE pu.user_id = ?' : ''}
-      GROUP BY p.id
-      ORDER BY p.created_at DESC
-    `, userId ? [userId] : []);
+    `;
 
+    const params = [];
+    if (userId !== undefined) {
+      query += ' WHERE p.user_id = ? OR pu.user_id = ?';
+      params.push(userId, userId);
+    }
+
+    query += ' GROUP BY p.id ORDER BY p.created_at DESC';
+    
+    const projects = db.exec(query, params);
+    
     return projects[0]?.values.map((row: any) => ({
       id: row[0],
       name: row[1],
@@ -122,14 +136,16 @@ export const dbService = {
       userId: row[3],
       assignedUsers: row[4] ? row[4].split(',').map(Number) : [],
       comments: row[5]
-        ? row[5].split(',').reduce((acc: Comment[], cur: string, i: number, arr: string[]) => {
-            if (i % 5 === 0) {
+        ? row[5].split('---RECORD---').reduce((acc: Comment[], commentGroup: string) => {
+            if (!commentGroup) return acc;
+            const [id, text, percentage, userId, date] = commentGroup.split('---SEPARATOR---');
+            if (id) {
               acc.push({
-                id: Number(cur),
-                text: arr[i + 1],
-                percentage: Number(arr[i + 2]),
-                userId: Number(arr[i + 3]),
-                date: new Date(arr[i + 4]),
+                id: Number(id),
+                text,
+                percentage: Number(percentage),
+                userId: Number(userId),
+                date: new Date(date),
               });
             }
             return acc;
