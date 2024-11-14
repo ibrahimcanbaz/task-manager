@@ -222,4 +222,39 @@ export const dbService = {
     await initDb();
     db.run('DELETE FROM comments WHERE id = ?', [commentId]);
   },
+
+  exportDb: async (): Promise<void> => {
+    await initDb();
+    const data = db.export();
+    const blob = new Blob([data], { type: 'application/x-sqlite3' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project_management.db';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  importDb: async (file: File): Promise<void> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    const SQL = await initSqlJs({
+      locateFile: file => `https://sql.js.org/dist/${file}`
+    });
+    
+    db = new SQL.Database(uint8Array);
+    const saveDb = () => {
+      const data = db.export();
+      const array = Array.from(data);
+      localStorage.setItem(DB_KEY, array.toString());
+    };
+    saveDb();
+    
+    // Refresh the page to load the new database
+    window.location.reload();
+  },
 };
