@@ -17,7 +17,7 @@ export function UserFilter({ users, selectedUserId, onSelectUser }: UserFilterPr
         size="sm"
         className="rounded-full px-4"
       >
-        All Projects
+        All 
       </Button>
       {users.map(user => (
         <Button
